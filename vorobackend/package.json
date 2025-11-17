@@ -1,0 +1,19 @@
+{
+  "name": "vorobackend",
+  "module": "index.js",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@fastify/helmet": "^13.0.2",
+    "@fastify/rate-limit": "^10.3.0",
+    "dotenv": "^17.2.3",
+    "fastify": "^5.6.2",
+    "pg": "^8.16.3",
+    "zxcvbn-lite": "^1.0.0"
+  }
+}

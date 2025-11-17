@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+.link-futuristic {
+  font-weight: 600;
+  color: #1877F2;
+  transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+
+.link-futuristic:hover {
+  color: #4fa3ff;
+  text-shadow: 0 0 8px rgba(79, 163, 255, 0.7);
+}
+
+.btn-2025 {
+  transition: 
+    background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.15s ease;
+}
+
+.btn-2025:hover {
+  background-color: #0f4bb8;
+  box-shadow: 0 0 14px rgba(24, 119, 242, 0.45);
+}
+
+.btn-2025:active {
+  transform: scale(0.97);
+  background-color: #0d3e97;
+  box-shadow: 0 0 6px rgba(24, 119, 242, 0.3);
+}
