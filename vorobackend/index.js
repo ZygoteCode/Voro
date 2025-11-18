@@ -3,6 +3,7 @@ import fastify from "fastify";
 import zxcvbn from "zxcvbn-lite";
 import { encrypt, decrypt } from "./cryptUtils";
 import { Pool, types } from "pg";
+import { keccak512 } from "js-sha3";
 
 dotenv.config();
 
@@ -106,8 +107,8 @@ async function authMiddleware(request, reply) {
 
         if (payload.token_version !== TOKEN_VERSION
             || payload.expires_at < Date.now()
-            || payload.user_agent !== request.headers['user-agent']
-            || payload.ip_address !== request.ip
+            || payload.user_agent !== keccak512(request.headers['user-agent'])
+            || payload.ip_address !== keccak512(request.ip)
         ) {
             return reply.code(401).send();
         }
@@ -169,8 +170,8 @@ server.post("/login", {
                 created_at: createdAt,
                 expires_at: expiresAt,
                 token_version: TOKEN_VERSION,
-                ip_address: request.ip,
-                user_agent: request.headers['user-agent']
+                ip_address: keccak512(request.ip),
+                user_agent: keccak512(request.headers['user-agent'])
             });
 
             return reply.code(200).send({ token: token });
