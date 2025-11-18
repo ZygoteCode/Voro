@@ -96,6 +96,11 @@ server.post("/register", {
 async function authMiddleware(request, reply) {
     try {
         const authHeader = request.headers.authorization;
+
+        if (!authHeader) {
+            return reply.code(401).send();
+        }
+
         const match = authHeader && BEARER_REGEX.exec(authHeader);
         
         if (!match) {
@@ -103,6 +108,12 @@ async function authMiddleware(request, reply) {
         }
 
         const token = match[1];
+        const result = await pool.query(`SELECT voro.is_token_blacklisted($1) AS exists`, [token]);
+        
+        if (result.rows[0].exists) {
+            return reply.code(401).send();
+        }
+
         const payload = decrypt(token);
 
         if (payload.token_version !== TOKEN_VERSION
@@ -123,6 +134,16 @@ server.get("/test", {
     preHandler: authMiddleware
 }, async (request, reply) => {
     return reply.send({ message: "Succesfully authenticated." });
+});
+
+server.post("/logout", {
+    preHandler: authMiddleware
+}, async (request, reply) => {
+    try {
+        await pool.query(`SELECT voro.blacklist_token($1)`, [BEARER_REGEX.exec(request.headers.authorization)[1]]);
+    } catch (err) {
+        return reply.code(500).send();
+    }
 });
 
 server.post("/login", {
@@ -179,7 +200,6 @@ server.post("/login", {
 
         return reply.code(401).send();
     } catch (err) {
-        console.log(err);
         return reply.code(500).send();
     }
 });

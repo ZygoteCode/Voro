@@ -9,6 +9,12 @@ CREATE TABLE IF NOT EXISTS voro.users
     password TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS voro.tokens_blacklist
+(
+    uid BIGSERIAL NOT NULL PRIMARY KEY,
+    token TEXT NOT NULL
+);
+
 CREATE OR REPLACE FUNCTION voro.create_user(
     p_username TEXT,
     p_password TEXT
@@ -54,3 +60,26 @@ BEGIN
     WHERE u.username = p_username;
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION voro.blacklist_token(p_token text)
+RETURNS void AS $$
+BEGIN
+    INSERT INTO voro.tokens_blacklist (token)
+    VALUES (p_token);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION voro.is_token_blacklisted(p_token TEXT)
+RETURNS BOOLEAN AS $$
+DECLARE
+    token_exists BOOLEAN;
+BEGIN
+    SELECT EXISTS (
+        SELECT 1
+        FROM voro.tokens_blacklist
+        WHERE token = p_token
+    ) INTO token_exists;
+
+    RETURN token_exists;
+END;
+$$ LANGUAGE plpgsql;

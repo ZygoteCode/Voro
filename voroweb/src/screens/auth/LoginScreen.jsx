@@ -4,6 +4,7 @@ import { Sun, Moon, Eye, EyeOff, Lock, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import API from '../../utils/ApiUtils';
 import { AuthContext } from "../../utils/AuthContext";
+import { keccak512 } from "js-sha3";
 
 const container = {
   hidden: { opacity: 0, y: 12 },
@@ -62,7 +63,8 @@ export default function LoginScreen() {
     try {
       const { data } = await API.post("/login", { username: form.username, password: form.password });
       const token = data.token;
-      login(token);
+
+      login(token, keccak512(form.password));
       navigate("/app");
     } catch {
       setError("Invalid username or password.");
