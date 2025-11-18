@@ -37,9 +37,10 @@ const dbConfig = {
 };
 
 const pool = new Pool(dbConfig);
-const BCRYPT_SALT_ROUNDS = +process.env.BCRYPT_SALT_ROUNDS || 10;
+
 const QUERY_CREATE_USER = `SELECT voro.create_user($1,$2)`;
 const QUERY_LOGIN = `SELECT uid, password FROM voro.login($1)`;
+
 const TOKEN_EXPIRATION = +process.env.TOKEN_EXPIRATION || 3600;
 const TOKEN_VERSION = +process.env.TOKEN_EXPIRATION || 1;
 const BEARER_REGEX = /^Bearer\s(.+)$/;
@@ -72,9 +73,13 @@ server.post("/register", {
         }
 
         const query = QUERY_CREATE_USER;
+
         const hashedPassword = await Bun.password.hash(password, {
-            algorithm: "bcrypt",
-            cost: BCRYPT_SALT_ROUNDS
+            algorithm: "argon2id",
+            memoryCost: 64 * 1024,
+            timeCost: 3,
+            parallelism: 1,
+            hashLength: 32
         });
 
         await pool.query(query, [username, hashedPassword]);
@@ -99,19 +104,11 @@ async function authMiddleware(request, reply) {
         const token = match[1];
         const payload = decrypt(token);
 
-        if (payload.token_version !== TOKEN_VERSION) {
-            return reply.code(401).send();
-        }
-        
-        if (payload.expires_at < Date.now()) {
-            return reply.code(401).send();
-        }
-
-        if (payload.user_agent !== request.headers['user-agent']) {
-            return reply.code(401).send();
-        }
-
-        if (payload.ip_address !== request.ip) {
+        if (payload.token_version !== TOKEN_VERSION
+            || payload.expires_at < Date.now()
+            || payload.user_agent !== request.headers['user-agent']
+            || payload.ip_address !== request.ip
+        ) {
             return reply.code(401).send();
         }
 
@@ -120,6 +117,12 @@ async function authMiddleware(request, reply) {
         return reply.code(401).send();
     }
 }
+
+server.get("/test", {
+    preHandler: authMiddleware
+}, async (request, reply) => {
+    return reply.send({ message: "Succesfully authenticated." });
+});
 
 server.post("/login", {
     schema: {

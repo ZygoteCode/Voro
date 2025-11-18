@@ -21,6 +21,8 @@ import {
   LogOut,
   Bell,
   UserCircle,
+  Circle,
+  CircleDot,
 } from "lucide-react";
 
 // Voro Messaging App (single-file React component)
@@ -46,7 +48,7 @@ import {
 /**
  * Avatar utente con status dot
  */
-function Avatar({ friend, size = "md" }) {
+function Avatar({ friend, size = "md", showStatus = true }) {
   const sizes = {
     sm: "w-10 h-10",
     md: "w-12 h-12",
@@ -61,18 +63,24 @@ function Avatar({ friend, size = "md" }) {
 
   return (
     <div className={`relative flex-shrink-0 ${sizes[size]}`}>
-      <div
+      <motion.div
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
         className={`w-full h-full rounded-full flex items-center justify-center text-white font-medium ${
           friend.avatarColor
         } ${size === "lg" ? "text-2xl" : ""}`}
       >
         {friend.name[0]}
-      </div>
-      <span
-        className={`absolute right-0 bottom-0 block w-3.5 h-3.5 rounded-full border-2 dark:border-[#071025] border-white ${
-          statusColors[friend.status]
-        }`}
-      />
+      </motion.div>
+      {showStatus && (
+        <motion.span
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className={`absolute right-0 bottom-0 block w-3.5 h-3.5 rounded-full border-2 dark:border-[#071025] border-white ${
+            statusColors[friend.status]
+          }`}
+        />
+      )}
     </div>
   );
 }
@@ -89,6 +97,7 @@ function Sidebar({
   setSelectedChatId,
   setShowSettings,
   setShowAddModal,
+  notificationCount,
 }) {
   const [sidebarQuery, setSidebarQuery] = useState("");
 
@@ -125,24 +134,39 @@ function Sidebar({
       <div className="p-4 flex items-center justify-between border-b border-inherit">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <div
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${"bg-indigo-500"}`}
             >
               V
-            </div>
-            <span
+            </motion.div>
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
               className={`absolute right-0 bottom-0 block w-3 h-3 rounded-full border-2 ${
                 dark ? "border-[#0B152B]" : "border-white"
               } ${"bg-green-400"}`}
             />
           </div>
-          <div>
+          <div className="relative">
             <div className="text-sm font-semibold">you@voro</div>
             <div className="text-xs opacity-80">Online</div>
+            {notificationCount > 0 && (
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="absolute -top-1 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
+              >
+                {notificationCount}
+              </motion.div>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
             onClick={() => setShowSettings(true)}
             className={`p-2 rounded-md ${
               dark ? "hover:bg-white/10" : "hover:bg-slate-100"
@@ -150,8 +174,10 @@ function Sidebar({
             aria-label="Impostazioni"
           >
             <Settings size={18} />
-          </button>
-          <button
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
             onClick={() => setDark((d) => !d)}
             className={`p-2 rounded-md ${
               dark ? "hover:bg-white/10" : "hover:bg-slate-100"
@@ -159,7 +185,7 @@ function Sidebar({
             aria-label="Tema"
           >
             {dark ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
+          </motion.button>
         </div>
       </div>
 
@@ -194,7 +220,7 @@ function Sidebar({
         </div>
       </div>
 
-      {/* Lista Chat */}
+      {/* Lista Chat - WhatsApp Style */}
       <div className="flex-1 overflow-y-auto pr-2 space-y-2 px-4">
         <div
           className={`text-xs ${
@@ -212,11 +238,17 @@ function Sidebar({
         )}
         {filteredChats.map((c) => {
           const f = getFriend(c.friendId);
+          // Determine if this chat has unread messages (for demo purposes, we'll simulate this)
+          const hasUnread = c.lastMessage && !c.lastMessage.startsWith("You:");
+          
           return (
-            <button
+            <motion.button
               key={c.id}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              whileHover={{ x: 5 }}
               onClick={() => setSelectedChatId(c.id)}
-              className={`w-full text-left flex items-center gap-3 px-3 py-2 rounded-md ${
+              className={`w-full text-left flex items-center gap-3 px-3 py-3 rounded-lg ${
                 selectedChatId === c.id
                   ? dark
                     ? "bg-white/10"
@@ -226,7 +258,18 @@ function Sidebar({
                   : "hover:bg-slate-50"
               }`}
             >
-              <Avatar friend={f} size="sm" />
+              <div className="relative">
+                <Avatar friend={f} size="sm" />
+                {hasUnread && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
+                  >
+                    1
+                  </motion.div>
+                )}
+              </div>
               <div className="flex-1 text-sm overflow-hidden">
                 <div className="flex items-center justify-between">
                   <div className="font-medium">{f.name}</div>
@@ -234,11 +277,20 @@ function Sidebar({
                     {timeHHMM(c.lastAt)}
                   </div>
                 </div>
-                <div className="text-xs opacity-70 truncate">
-                  {c.lastMessage}
+                <div className="flex items-center justify-between">
+                  <div className={`text-xs truncate ${hasUnread ? "font-semibold" : "opacity-70"}`}>
+                    {c.lastMessage}
+                  </div>
+                  {hasUnread && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="bg-[#1877F2] rounded-full w-2 h-2 flex-shrink-0 ml-2"
+                    />
+                  )}
                 </div>
               </div>
-            </button>
+            </motion.button>
           );
         })}
       </div>
@@ -295,8 +347,22 @@ function FriendsView({
 
   const tabs = [
     { id: "all", label: "Tutti" },
+    { id: "online", label: "Online" },
     { id: "blocked", label: "Bloccati" },
   ];
+
+  // Group friends by status for Discord-like appearance
+  const groupedFriends = useMemo(() => {
+    const groups = {};
+    filteredFriends.forEach(friend => {
+      const status = friend.status;
+      if (!groups[status]) {
+        groups[status] = [];
+      }
+      groups[status].push(friend);
+    });
+    return groups;
+  }, [filteredFriends]);
 
   return (
     <div className="flex flex-col h-full">
@@ -314,8 +380,10 @@ function FriendsView({
         </div>
         <div className="flex items-center gap-2">
           {tabs.map((tab) => (
-            <button
+            <motion.button
               key={tab.id}
+              whileHover={{ scale: 0.98 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => setFriendsTab(tab.id)}
               className={`px-3 py-2 rounded-md text-sm font-medium ${
                 friendsTab === tab.id
@@ -326,9 +394,11 @@ function FriendsView({
               }`}
             >
               {tab.label}
-            </button>
+            </motion.button>
           ))}
-          <button
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => setShowAddModal(true)}
             className={`px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 ${
               dark
@@ -337,72 +407,186 @@ function FriendsView({
             }`}
           >
             <UserPlus size={16} /> Aggiungi
-          </button>
+          </motion.button>
         </div>
       </div>
 
-      {/* Lista Amici */}
+      {/* Lista Amici - Discord Style */}
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
-        <h3
-          className={`text-sm font-semibold ${
-            dark ? "text-slate-400" : "text-slate-600"
-          } uppercase tracking-wider mb-3`}
-        >
-          {friendsTab === "all" ? "Amici" : "Bloccati"} (
-          {filteredFriends.length})
-        </h3>
-        {filteredFriends.length === 0 && (
-          <div className="text-center py-10 opacity-60">
-            Nessun amico in questa sezione.
-          </div>
-        )}
-        {filteredFriends.map((f) => (
-          <div
-            key={f.id}
-            className={`p-3 rounded-lg ${
-              dark ? "hover:bg-white/5" : "hover:bg-slate-50"
-            } flex items-center justify-between border ${
-              dark ? "border-white/10" : "border-transparent"
-            }`}
-          >
-            {/* Info Utente */}
-            <div className="flex items-center gap-3">
-              <Avatar friend={f} size="sm" />
-              <div>
-                <div className="font-semibold">{f.name}</div>
-                <div className="text-xs opacity-70 capitalize">{f.status}</div>
-              </div>
-            </div>
-
-            {/* Azioni */}
-            <div className="flex items-center gap-2">
-              {f.status !== "blocked" && (
-                <button
+        {friendsTab === "online" ? (
+          <>
+            <h3
+              className={`text-sm font-semibold ${
+                dark ? "text-slate-400" : "text-slate-600"
+              } uppercase tracking-wider mb-3`}
+            >
+              Online - {groupedFriends.online ? groupedFriends.online.length : 0}
+            </h3>
+            {groupedFriends.online && groupedFriends.online.length > 0 ? (
+              groupedFriends.online.map((f) => (
+                <motion.div
+                  key={f.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  whileHover={{ x: 5 }}
+                  className={`p-3 rounded-lg ${
+                    dark ? "hover:bg-white/5" : "hover:bg-slate-50"
+                  } flex items-center justify-between border ${
+                    dark ? "border-white/10" : "border-transparent"
+                  } cursor-pointer`}
                   onClick={() => openChatWithFriend(f.id)}
-                  title="Invia Messaggio"
-                  className={`p-2 rounded-full ${
-                    dark
-                      ? "bg-white/10 hover:bg-white/20"
-                      : "bg-slate-100 hover:bg-slate-200"
+                >
+                  <div className="flex items-center gap-3">
+                    <Avatar friend={f} size="sm" />
+                    <div>
+                      <div className="font-semibold">{f.name}</div>
+                      <div className="text-xs opacity-70">Online</div>
+                    </div>
+                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowBlockConfirm(f.id);
+                    }}
+                    title="Blocca Utente"
+                    className={`p-2 rounded-full text-red-500 ${
+                      dark
+                        ? "hover:bg-red-500/10"
+                        : "hover:bg-red-500/10"
+                    }`}
+                  >
+                    <Slash size={18} />
+                  </motion.button>
+                </motion.div>
+              ))
+            ) : (
+              <div className="text-center py-10 opacity-60">
+                Nessun amico online.
+              </div>
+            )}
+          </>
+        ) : friendsTab === "blocked" ? (
+          <>
+            <h3
+              className={`text-sm font-semibold ${
+                dark ? "text-slate-400" : "text-slate-600"
+              } uppercase tracking-wider mb-3`}
+            >
+              Bloccati - {groupedFriends.blocked ? groupedFriends.blocked.length : 0}
+            </h3>
+            {groupedFriends.blocked && groupedFriends.blocked.length > 0 ? (
+              groupedFriends.blocked.map((f) => (
+                <motion.div
+                  key={f.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  whileHover={{ x: 5 }}
+                  className={`p-3 rounded-lg ${
+                    dark ? "hover:bg-white/5" : "hover:bg-slate-50"
+                  } flex items-center justify-between border ${
+                    dark ? "border-white/10" : "border-transparent"
                   }`}
                 >
-                  <MessageSquare size={18} />
-                </button>
-              )}
-              <button
-                onClick={() => setShowBlockConfirm(f.id)}
-                title="Blocca Utente"
-                className={`p-2 rounded-full text-red-500 ${
-                  dark
-                    ? "hover:bg-red-500/10"
-                    : "hover:bg-red-500/10"
-                }`}
-              >
-                <Slash size={18} />
-              </button>
-            </div>
-          </div>
-        ))}
+                  <div className="flex items-center gap-3">
+                    <Avatar friend={f} size="sm" />
+                    <div>
+                      <div className="font-semibold">{f.name}</div>
+                      <div className="text-xs opacity-70 capitalize">Bloccato</div>
+                    </div>
+                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                      // Unblock functionality would go here
+                    }}
+                    title="Sblocca Utente"
+                    className={`p-2 rounded-full text-green-500 ${
+                      dark
+                        ? "hover:bg-green-500/10"
+                        : "hover:bg-green-500/10"
+                    }`}
+                  >
+                    <Check size={18} />
+                  </motion.button>
+                </motion.div>
+              ))
+            ) : (
+              <div className="text-center py-10 opacity-60">
+                Nessun amico bloccato.
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {Object.entries(groupedFriends).map(([status, friendsList]) => (
+              <div key={status}>
+                <h3
+                  className={`text-sm font-semibold ${
+                    dark ? "text-slate-400" : "text-slate-600"
+                  } uppercase tracking-wider mb-3 mt-4 first:mt-0`}
+                >
+                  {status === "online" ? "Online" : status === "away" ? "Inattivo" : "Offline"} - {friendsList.length}
+                </h3>
+                {friendsList.map((f) => (
+                  <motion.div
+                    key={f.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    whileHover={{ x: 5 }}
+                    className={`p-3 rounded-lg ${
+                      dark ? "hover:bg-white/5" : "hover:bg-slate-50"
+                    } flex items-center justify-between border ${
+                      dark ? "border-white/10" : "border-transparent"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Avatar friend={f} size="sm" />
+                      <div>
+                        <div className="font-semibold">{f.name}</div>
+                        <div className="text-xs opacity-70 capitalize">
+                          {status === "online" ? "Online" : status === "away" ? "Inattivo" : "Offline"}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {status !== "blocked" && (
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => openChatWithFriend(f.id)}
+                          title="Invia Messaggio"
+                          className={`p-2 rounded-full ${
+                            dark
+                              ? "bg-white/10 hover:bg-white/20"
+                              : "bg-slate-100 hover:bg-slate-200"
+                          }`}
+                        >
+                          <MessageSquare size={18} />
+                        </motion.button>
+                      )}
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setShowBlockConfirm(f.id)}
+                        title="Blocca Utente"
+                        className={`p-2 rounded-full text-red-500 ${
+                          dark
+                            ? "hover:bg-red-500/10"
+                            : "hover:bg-red-500/10"
+                        }`}
+                      >
+                        <Slash size={18} />
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            ))}
+          </>
+        )}
       </div>
     </div>
   );
@@ -471,14 +655,16 @@ function ChatView({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header Chat */}
+      {/* Header Chat - Telegram Style */}
       <div
         className={`p-4 flex items-center justify-between border-b ${
           dark ? "border-white/10 bg-[#0B152B]" : "border-slate-200 bg-white"
-        } flex-shrink-0`}
+        } flex-shrink-0 shadow-sm`}
       >
         <div className="flex items-center gap-3">
-          <button
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
             onClick={() => setSelectedChatId(null)}
             className={`p-2 rounded-full -ml-2 ${
               dark ? "hover:bg-white/10" : "hover:bg-slate-100"
@@ -486,7 +672,7 @@ function ChatView({
             aria-label="Indietro"
           >
             <ArrowLeftCircle size={20} />
-          </button>
+          </motion.button>
           <Avatar friend={friend} size="sm" />
           <div>
             <div className="font-semibold">{friend.name}</div>
@@ -494,47 +680,56 @@ function ChatView({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
             className={`p-2 rounded-md ${
               dark ? "hover:bg-white/10" : "hover:bg-slate-100"
             }`}
             aria-label="Cerca in chat"
           >
             <Search size={18} />
-          </button>
-          <button
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
             className={`p-2 rounded-md ${
               dark ? "hover:bg-white/10" : "hover:bg-slate-100"
             }`}
             aria-label="Altre azioni"
           >
             <MoreVertical size={18} />
-          </button>
+          </motion.button>
         </div>
       </div>
 
-      {/* Area Messaggi */}
+      {/* Area Messaggi - Telegram Style */}
       <div
         className="flex-1 overflow-y-auto p-4"
         style={chatBgStyle}
       >
         <div className="space-y-4 max-w-4xl mx-auto">
-          {messages.map((m) => (
+          {messages.map((m, index) => (
             <motion.div
               key={m.id}
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35 }}
+              transition={{ duration: 0.3, delay: index * 0.05 }}
               className={`flex ${
                 m.fromMe ? "justify-end" : "justify-start"
               }`}
             >
+              {!m.fromMe && (
+                <div className="mr-2 mt-1">
+                  <Avatar friend={friend} size="sm" showStatus={false} />
+                </div>
+              )}
               <div
                 className={`max-w-[75%] p-3 rounded-2xl whitespace-pre-wrap break-words ${
                   m.fromMe
                     ? "bg-[#1877F2] text-white rounded-br-lg"
                     : dark
-                    ? "bg-white/10 text-white rounded-bl-lg"
+                    ? "bg-[#1a2234] text-white rounded-bl-lg"
                     : "bg-white text-[#0F1724] shadow-sm rounded-bl-lg"
                 }`}
               >
@@ -553,20 +748,22 @@ function ChatView({
         </div>
       </div>
 
-      {/* Composer */}
+      {/* Composer - Telegram Style */}
       <div
         className={`p-4 flex items-end gap-3 border-t ${
           dark ? "border-white/10 bg-[#0B152B]" : "border-slate-200 bg-white/80"
-        } backdrop-blur-sm flex-shrink-0`}
+        } backdrop-blur-sm flex-shrink-0 shadow-lg`}
       >
-        <button
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
           className={`p-3 h-[44px] rounded-full ${
             dark ? "hover:bg-white/10" : "hover:bg-slate-100"
           }`}
           aria-label="Allega"
         >
           <Paperclip size={18} />
-        </button>
+        </motion.button>
         <textarea
           ref={composerRef}
           value={composer}
@@ -579,12 +776,14 @@ function ChatView({
           } bg-transparent outline-none focus:ring-2 focus:ring-[#1877F2]/20`}
           style={{ height: "44px" }} // Altezza iniziale
         />
-        <button
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           onClick={handleSend}
-          className="px-4 py-2 h-[44px] rounded-lg bg-[#1877F2] text-white flex items-center justify-center gap-2"
+          className="px-4 py-2 h-[44px] rounded-lg bg-[#1877F2] text-white flex items-center justify-center gap-2 shadow-md"
         >
           <Send size={16} />
-        </button>
+        </motion.button>
       </div>
     </div>
   );
@@ -604,6 +803,59 @@ function SettingsModal({ show, onClose, dark, setDark, friends }) {
   ];
 
   const blockedFriends = friends.filter((f) => f.status === "blocked");
+
+  // iOS-style radio button component
+  const RadioButton = ({ selected, onClick, label }) => (
+    <motion.div
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+      className={`flex items-center justify-between p-4 rounded-xl cursor-pointer ${
+        dark ? "hover:bg-white/5" : "hover:bg-slate-100"
+      }`}
+    >
+      <span>{label}</span>
+      <div className="relative w-10 h-6 rounded-full bg-gray-300 dark:bg-gray-600 transition-colors">
+        <motion.div
+          className="absolute top-1 w-4 h-4 rounded-full bg-white shadow"
+          initial={false}
+          animate={{
+            left: selected ? "calc(100% - 1rem)" : "0.25rem",
+            backgroundColor: selected ? "#1877F2" : "#FFFFFF",
+          }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+        />
+      </div>
+    </motion.div>
+  );
+
+  // iOS-style toggle switch
+  const ToggleSwitch = ({ enabled, onChange, label }) => (
+    <motion.div
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      className={`flex items-center justify-between p-4 rounded-xl ${
+        dark ? "hover:bg-white/5" : "hover:bg-slate-100"
+      }`}
+    >
+      <span>{label}</span>
+      <div
+        onClick={() => onChange(!enabled)}
+        className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer ${
+          enabled ? "bg-[#1877F2]" : "bg-gray-300 dark:bg-gray-600"
+        }`}
+      >
+        <motion.div
+          className="absolute top-1 w-4 h-4 rounded-full bg-white shadow"
+          initial={false}
+          animate={{
+            left: enabled ? "calc(100% - 1rem)" : "0.25rem",
+          }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+        />
+      </div>
+    </motion.div>
+  );
 
   return (
     <AnimatePresence>
@@ -630,10 +882,12 @@ function SettingsModal({ show, onClose, dark, setDark, friends }) {
             >
               <div className="flex-1">
                 {navItems.map((item) => (
-                  <button
+                  <motion.button
                     key={item.id}
+                    whileHover={{ x: 3 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => setTab(item.id)}
-                    className={`w-full text-left flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm ${
+                    className={`w-full text-left flex items-center gap-3 px-3 py-3 rounded-lg font-medium text-sm ${
                       tab === item.id
                         ? dark
                           ? "bg-white/10"
@@ -645,11 +899,13 @@ function SettingsModal({ show, onClose, dark, setDark, friends }) {
                   >
                     <item.icon size={18} />
                     {item.label}
-                  </button>
+                  </motion.button>
                 ))}
               </div>
-              <button
-                className={`w-full text-left flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm ${
+              <motion.button
+                whileHover={{ x: 3 }}
+                whileTap={{ scale: 0.98 }}
+                className={`w-full text-left flex items-center gap-3 px-3 py-3 rounded-lg font-medium text-sm ${
                   dark
                     ? "hover:bg-white/5 opacity-70"
                     : "hover:bg-slate-200 opacity-80"
@@ -657,13 +913,15 @@ function SettingsModal({ show, onClose, dark, setDark, friends }) {
               >
                 <LogOut size={18} />
                 Esci
-              </button>
+              </motion.button>
             </div>
 
             {/* Contenuto Impostazioni */}
             <div className="flex-1 overflow-y-auto p-6">
               <div className="flex items-center justify-end mb-4">
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
                   onClick={onClose}
                   className={`p-2 rounded-full ${
                     dark ? "hover:bg-white/10" : "hover:bg-slate-100"
@@ -671,15 +929,19 @@ function SettingsModal({ show, onClose, dark, setDark, friends }) {
                   aria-label="Chiudi"
                 >
                   <X size={20} />
-                </button>
+                </motion.button>
               </div>
 
               {/* Tab: Il mio Account */}
               {tab === "account" && (
-                <div className="space-y-6">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-6"
+                >
                   <h2 className="text-2xl font-bold">Il mio Account</h2>
                   <div
-                    className={`p-6 rounded-lg ${
+                    className={`p-6 rounded-2xl ${
                       dark ? "bg-white/5" : "bg-slate-50"
                     }`}
                   >
@@ -699,57 +961,83 @@ function SettingsModal({ show, onClose, dark, setDark, friends }) {
                         </p>
                       </div>
                     </div>
-                    <button className="mt-4 px-3 py-2 rounded-md bg-[#1877F2] text-white text-sm">
+                    <motion.button 
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="mt-4 px-4 py-2 rounded-lg bg-[#1877F2] text-white text-sm"
+                    >
                       Modifica Profilo
-                    </button>
+                    </motion.button>
                   </div>
-                </div>
+                </motion.div>
               )}
 
               {/* Tab: Aspetto */}
               {tab === "appearance" && (
-                <div className="space-y-6">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-6"
+                >
                   <h2 className="text-2xl font-bold">Aspetto</h2>
                   <div
-                    className={`p-4 rounded-lg ${
+                    className={`p-4 rounded-2xl ${
                       dark ? "bg-white/5" : "bg-slate-50"
                     }`}
                   >
                     <h3 className="font-semibold mb-3">Tema App</h3>
-                    <div className="flex gap-4">
-                      <button
+                    <div className="space-y-3">
+                      <RadioButton
+                        selected={!dark}
                         onClick={() => setDark(false)}
-                        className={`flex-1 p-4 rounded-lg border-2 ${
-                          !dark
-                            ? "border-[#1877F2]"
-                            : "border-transparent opacity-60"
-                        } ${dark ? "bg-white/10" : "bg-white"}`}
-                      >
-                        <Sun className="mb-2" />
-                        Chiaro
-                      </button>
-                      <button
+                        label="Chiaro"
+                      />
+                      <RadioButton
+                        selected={dark}
                         onClick={() => setDark(true)}
-                        className={`flex-1 p-4 rounded-lg border-2 ${
-                          dark
-                            ? "border-[#1877F2]"
-                            : "border-transparent opacity-60"
-                        } ${dark ? "bg-black/20" : "bg-slate-800 text-white"}`}
-                      >
-                        <Moon className="mb-2" />
-                        Scuro
-                      </button>
+                        label="Scuro"
+                      />
                     </div>
                   </div>
-                </div>
+                  
+                  <div
+                    className={`p-4 rounded-2xl ${
+                      dark ? "bg-white/5" : "bg-slate-50"
+                    }`}
+                  >
+                    <h3 className="font-semibold mb-3">Dimensioni Testo</h3>
+                    <div className="space-y-3">
+                      <RadioButton selected={true} onClick={() => {}} label="Normale" />
+                      <RadioButton selected={false} onClick={() => {}} label="Grande" />
+                      <RadioButton selected={false} onClick={() => {}} label="Molto Grande" />
+                    </div>
+                  </div>
+                </motion.div>
               )}
 
               {/* Tab: Privacy */}
               {tab === "privacy" && (
-                <div className="space-y-6">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-6"
+                >
                   <h2 className="text-2xl font-bold">Privacy e Sicurezza</h2>
                   <div
-                    className={`p-4 rounded-lg ${
+                    className={`p-4 rounded-2xl ${
+                      dark ? "bg-white/5" : "bg-slate-50"
+                    }`}
+                  >
+                    <h3 className="font-semibold mb-3">Impostazioni Privacy</h3>
+                    <div className="space-y-3">
+                      <ToggleSwitch enabled={true} onChange={() => {}} label="Mostra quando sono online" />
+                      <ToggleSwitch enabled={false} onChange={() => {}} label="Consenti messaggi da sconosciuti" />
+                      <ToggleSwitch enabled={true} onChange={() => {}} label="Conferma lettura" />
+                    </div>
+                  </div>
+                  
+                  <div
+                    className={`p-4 rounded-2xl ${
                       dark ? "bg-white/5" : "bg-slate-50"
                     }`}
                   >
@@ -764,7 +1052,7 @@ function SettingsModal({ show, onClose, dark, setDark, friends }) {
                       {blockedFriends.map((f) => (
                         <div
                           key={f.id}
-                          className={`p-3 rounded-md ${
+                          className={`p-3 rounded-lg ${
                             dark ? "bg-black/20" : "bg-white"
                           } flex items-center justify-between`}
                         >
@@ -772,31 +1060,63 @@ function SettingsModal({ show, onClose, dark, setDark, friends }) {
                             <Avatar friend={f} size="sm" />
                             <div className="font-medium">{f.name}</div>
                           </div>
-                          <button className="px-3 py-1 rounded-md bg-red-600 text-white text-sm">
+                          <motion.button 
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="px-3 py-1 rounded-md bg-red-600 text-white text-sm"
+                          >
                             Sblocca
-                          </button>
+                          </motion.button>
                         </div>
                       ))}
                     </div>
                   </div>
-                </div>
+                </motion.div>
               )}
                 
-              {/* Tab: Notifiche (Placeholder) */}
+              {/* Tab: Notifiche */}
               {tab === "notifications" && (
-                <div className="space-y-6">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-6"
+                >
                   <h2 className="text-2xl font-bold">Notifiche</h2>
                   <div
-                    className={`p-4 rounded-lg ${
+                    className={`p-4 rounded-2xl ${
                       dark ? "bg-white/5" : "bg-slate-50"
                     }`}
                   >
                     <h3 className="font-semibold mb-3">Impostazioni Notifiche</h3>
-                    <p className="text-sm opacity-80">
-                      Controlli per suoni, badge e altro (non implementato).
-                    </p>
+                    <div className="space-y-3">
+                      <ToggleSwitch enabled={true} onChange={() => {}} label="Notifiche Messaggi" />
+                      <ToggleSwitch enabled={true} onChange={() => {}} label="Suono Messaggi" />
+                      <ToggleSwitch enabled={false} onChange={() => {}} label="Notifiche Gruppo" />
+                      <ToggleSwitch enabled={true} onChange={() => {}} label="Anteprima Messaggi" />
+                    </div>
                   </div>
-                </div>
+                  
+                  <div
+                    className={`p-4 rounded-2xl ${
+                      dark ? "bg-white/5" : "bg-slate-50"
+                    }`}
+                  >
+                    <h3 className="font-semibold mb-3">Orari Non Disturbare</h3>
+                    <div className="space-y-3">
+                      <ToggleSwitch enabled={false} onChange={() => {}} label="Attiva" />
+                      <div className="flex items-center justify-between p-4 rounded-xl bg-slate-100 dark:bg-white/5">
+                        <span>Dalle 22:00 alle 08:00</span>
+                        <motion.button 
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          className="px-3 py-1 rounded-md bg-[#1877F2] text-white text-sm"
+                        >
+                          Modifica
+                        </motion.button>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
               )}
             </div>
           </motion.div>
@@ -990,6 +1310,11 @@ export default function VoroAppScreen() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBlockConfirm, setShowBlockConfirm] = useState(null); // friend id
   const [showSettings, setShowSettings] = useState(false);
+  
+  // Calculate notification count (unread messages)
+  const notificationCount = useMemo(() => {
+    return chats.filter(chat => chat.lastMessage && !chat.lastMessage.startsWith("You:")).length;
+  }, [chats]);
 
   // === EFFETTI ===
   useEffect(() => {
@@ -1116,6 +1441,7 @@ export default function VoroAppScreen() {
         setSelectedChatId={setSelectedChatId}
         setShowSettings={setShowSettings}
         setShowAddModal={setShowAddModal}
+        notificationCount={notificationCount}
       />
 
       <main className="flex-1 h-full">

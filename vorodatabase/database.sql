@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS voro.users
 (
     uid BIGSERIAL NOT NULL PRIMARY KEY,
     username TEXT NOT NULL CHECK (LENGTH(username) >= 3 AND LENGTH(username) <= 16) UNIQUE,
-    password TEXT NOT NULL CHECK (LENGTH(password) = 60)
+    password TEXT NOT NULL
 );
 
 CREATE OR REPLACE FUNCTION voro.create_user(
@@ -22,12 +22,6 @@ BEGIN
     IF length(p_username) < 3 OR length(p_username) > 16 THEN
         RAISE EXCEPTION 
             'Invalid username length'
-            USING ERRCODE = '22023';
-    END IF;
-
-    IF NOT length(p_password) = 60 THEN
-        RAISE EXCEPTION 
-            'Invalid password length'
             USING ERRCODE = '22023';
     END IF;
 
