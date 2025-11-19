@@ -1,11 +1,8 @@
-import dotenv from "dotenv";
 import fastify from "fastify";
 import zxcvbn from "zxcvbn-lite";
 import { encrypt, decrypt } from "./cryptUtils";
 import { Pool, types } from "pg";
 import { keccak512 } from "js-sha3";
-
-dotenv.config();
 
 const server = fastify({
     logger: false,
@@ -41,6 +38,8 @@ const pool = new Pool(dbConfig);
 
 const QUERY_CREATE_USER = `SELECT voro.create_user($1,$2)`;
 const QUERY_LOGIN = `SELECT uid, password FROM voro.login($1)`;
+const QUERY_BLACKLIST_TOKEN = `SELECT voro.blacklist_token($1)`;
+const QUERY_IS_TOKEN_BLACKLISTED = `SELECT voro.is_token_blacklisted($1) AS exists`;
 
 const TOKEN_EXPIRATION = +process.env.TOKEN_EXPIRATION || 3600;
 const TOKEN_VERSION = +process.env.TOKEN_EXPIRATION || 1;
@@ -59,6 +58,7 @@ server.post("/register", {
                 username: { type: 'string', minLength: 3, maxLength: 16 },
                 password: { type: 'string', minLength: 8, maxLength: 60 }
             },
+            required: ['username', 'password'],
             additionalProperties: false
         }      
     },
@@ -108,7 +108,7 @@ async function authMiddleware(request, reply) {
         }
 
         const token = match[1];
-        const result = await pool.query(`SELECT voro.is_token_blacklisted($1) AS exists`, [token]);
+        const result = await pool.query(QUERY_IS_TOKEN_BLACKLISTED, [token]);
         
         if (result.rows[0].exists) {
             return reply.code(401).send();
@@ -136,11 +136,66 @@ server.get("/test", {
     return reply.send({ message: "Succesfully authenticated." });
 });
 
+server.post("/change-password", {
+    preHandler: authMiddleware,
+    schema: {
+        body: {
+            type: 'object',
+            properties: {
+                old_password: { type: 'string', minLength: 8, maxLength: 60 },
+                new_password: { type: 'string', minLength: 8, maxLength: 60 }
+            },
+            required: ['old_password', 'new_password']
+        }
+    }
+}, async (request, reply) => {
+    try {
+        const { old_password, new_password } = request.body;
+
+        if (zxcvbn(old_password).score < 3 || zxcvbn(new_password).score < 3) {
+            return reply.code(422).send();
+        }
+
+        const result = await pool.query(QUERY_LOGIN, [request.user.username]);
+
+        if (result.rowCount === 0) {
+            return reply.code(404).send();
+        }
+
+        const rowResult = result.rows[0];
+        const hashedPassword = rowResult.password;
+        const userUid = rowResult.uid;
+
+        if (hashedPassword === undefined || hashedPassword === null) {
+            return reply.code(404).send();
+        }
+
+        const verification = await Bun.password.verify(old_password, hashedPassword);
+    
+        if (!verification) {
+            return reply.code(400).send();
+        }
+
+        const newHashedPassword = await Bun.password.hash(new_password, {
+            algorithm: "argon2id",
+            memoryCost: 64 * 1024,
+            timeCost: 3,
+            parallelism: 1,
+            hashLength: 32
+        });
+
+        await pool.query(QUERY_BLACKLIST_TOKEN, [BEARER_REGEX.exec(request.headers.authorization)[1]]);
+        await pool.query("UPDATE voro.users SET password = $1 WHERE uid = $2", [newHashedPassword, userUid]);
+    } catch (err) {
+        return reply.code(500).send();
+    }
+});
+
 server.post("/logout", {
     preHandler: authMiddleware
 }, async (request, reply) => {
     try {
-        await pool.query(`SELECT voro.blacklist_token($1)`, [BEARER_REGEX.exec(request.headers.authorization)[1]]);
+        await pool.query(QUERY_BLACKLIST_TOKEN, [BEARER_REGEX.exec(request.headers.authorization)[1]]);
     } catch (err) {
         return reply.code(500).send();
     }
@@ -154,6 +209,7 @@ server.post("/login", {
                 username: { type: 'string', minLength: 3, maxLength: 16 },
                 password: { type: 'string', minLength: 8, maxLength: 60 }
             },
+            required: ['username', 'password'],
             additionalProperties: false
         }
     }

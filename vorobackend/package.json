@@ -11,7 +11,6 @@
   "dependencies": {
     "@fastify/helmet": "^13.0.2",
     "@fastify/rate-limit": "^10.3.0",
-    "dotenv": "^17.2.3",
     "fastify": "^5.6.2",
     "js-sha3": "^0.9.3",
     "pg": "^8.16.3",

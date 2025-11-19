@@ -6,7 +6,6 @@
       "dependencies": {
         "@fastify/helmet": "^13.0.2",
         "@fastify/rate-limit": "^10.3.0",
-        "dotenv": "^17.2.3",
         "fastify": "^5.6.2",
         "js-sha3": "^0.9.3",
         "pg": "^8.16.3",
@@ -64,8 +63,6 @@
     "csstype": ["csstype@3.2.1", "", {}, "sha512-98XGutrXoh75MlgLihlNxAGbUuFQc7l1cqcnEZlLNKc0UrVdPndgmaDmYTDDh929VS/eqTZV0rozmhu2qqT1/g=="],
 
     "dequal": ["dequal@2.0.3", "", {}, "sha512-0je+qPKHEMohvfRTCEo3CrPG6cAzAYgmzKyxRiYSSDkS6eGJdyVJm7WaYA5ECaAD9wLB2T4EEeymA5aFVcYXCA=="],
-
-    "dotenv": ["dotenv@17.2.3", "", {}, "sha512-JVUnt+DUIzu87TABbhPmNfVdBDt18BLOWjMUFJMSi/Qqg7NTYtabbvSNJGOJ7afbRuv9D/lngizHtP7QyLQ+9w=="],
 
     "fast-decode-uri-component": ["fast-decode-uri-component@1.0.1", "", {}, "sha512-WKgKWg5eUxvRZGwW8FvfbaH7AXSh2cL+3j5fMGzUMCxWBJ3dV3a7Wz8y2f/uQ0e3B6WmodD3oS54jTQ9HVTIIg=="],
 
